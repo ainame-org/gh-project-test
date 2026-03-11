@@ -1,0 +1,34 @@
+name: Cat file on In Progress
+
+on:
+  projects_v2_item:
+    types: [edited]
+
+jobs:
+  cat-file:
+    if: |
+      github.event.changes.field_value.field_name == 'Status' &&
+      github.event.projects_v2_item.content_type == 'Issue' &&
+      github.event.changes.field_value.to.name == 'In Progress'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get file path from issue title
+        id: get-file
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          file=$(gh api graphql -f query='
+            query($nodeId: ID!) {
+              node(id: $nodeId) {
+                ... on Issue {
+                  title
+                }
+              }
+            }
+          ' -f nodeId="${{ github.event.projects_v2_item.content_node_id }}" --jq '.data.node.title')
+          echo "file=$file" >> $GITHUB_OUTPUT
+
+      - name: Cat the file
+        run: cat "${{ steps.get-file.outputs.file }}"
