@@ -38,8 +38,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          PROJECT_ID=$(gh project list --owner ainame --format json | jq -r '.projects[] | select(.number == 3) | .id')
+          FIELDS=$(gh project field-list 3 --owner ainame --format json)
+          FIELD_ID=$(echo "$FIELDS" | jq -r '.fields[] | select(.name == "Status") | .id')
+          DONE_ID=$(echo "$FIELDS" | jq -r '.fields[] | select(.name == "Status") | .options[] | select(.name == "Done") | .id')
+
           gh project item-edit \
             --id "${{ github.event.projects_v2_item.node_id }}" \
-            --project-id "PVT_kwHOAAttlc4BRcsa" \
-            --field-id "PVTSSF_lAHOAAttlc4BRcsazg_RgIg" \
-            --single-select-option-id "98236657"
+            --project-id "$PROJECT_ID" \
+            --field-id "$FIELD_ID" \
+            --single-select-option-id "$DONE_ID"
