@@ -19,19 +19,32 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ITEM_ID="${{ github.event.projects_v2_item.node_id }}"
+          result=$(gh api graphql -f query='
+            query($nodeId: ID!) {
+              node(id: $nodeId) {
+                ... on Issue { title }
+              }
+              user(login: "ainame") {
+                projectV2(number: 3) {
+                  id
+                  fields(first: 20) {
+                    nodes {
+                      ... on ProjectV2SingleSelectField {
+                        id
+                        name
+                        options { id name }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ' -f nodeId="${{ github.event.projects_v2_item.content_node_id }}")
 
-          file=$(gh project item-list 3 --owner ainame --format json --limit 200 \
-            | jq -r --arg id "$ITEM_ID" '.items[] | select(.id == $id) | .title')
-          project_id=$(gh project view 3 --owner ainame --format json | jq -r '.id')
-          fields=$(gh project field-list 3 --owner ainame --format json)
-          field_id=$(echo "$fields" | jq -r '.fields[] | select(.name == "Status") | .id')
-          done_id=$(echo "$fields" | jq -r '.fields[] | select(.name == "Status") | .options[] | select(.name == "Done") | .id')
-
-          echo "file=$file" >> $GITHUB_OUTPUT
-          echo "project_id=$project_id" >> $GITHUB_OUTPUT
-          echo "field_id=$field_id" >> $GITHUB_OUTPUT
-          echo "done_id=$done_id" >> $GITHUB_OUTPUT
+          echo "file=$(echo "$result" | jq -r '.data.node.title')" >> $GITHUB_OUTPUT
+          echo "project_id=$(echo "$result" | jq -r '.data.user.projectV2.id')" >> $GITHUB_OUTPUT
+          echo "field_id=$(echo "$result" | jq -r '.data.user.projectV2.fields.nodes[] | select(.name == "Status") | .id')" >> $GITHUB_OUTPUT
+          echo "done_id=$(echo "$result" | jq -r '.data.user.projectV2.fields.nodes[] | select(.name == "Status") | .options[] | select(.name == "Done") | .id')" >> $GITHUB_OUTPUT
 
       - name: Cat the file
         run: cat "${{ steps.resolve.outputs.file }}"
