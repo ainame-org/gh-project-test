@@ -38,15 +38,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh api graphql -f query='
-            mutation($itemId: ID!) {
-              updateProjectV2ItemFieldValue(input: {
-                projectId: "PVT_kwHOAAttlc4BRcsa"
-                itemId: $itemId
-                fieldId: "PVTSSF_lAHOAAttlc4BRcsazg_RgIg"
-                value: { singleSelectOptionId: "98236657" }
-              }) {
-                projectV2Item { id }
-              }
-            }
-          ' -f itemId="${{ github.event.projects_v2_item.node_id }}"
+          gh project item-edit \
+            --id "${{ github.event.projects_v2_item.node_id }}" \
+            --project-id "PVT_kwHOAAttlc4BRcsa" \
+            --field-id "PVTSSF_lAHOAAttlc4BRcsazg_RgIg" \
+            --single-select-option-id "98236657"
